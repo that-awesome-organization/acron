@@ -1,0 +1,21 @@
+# log file will log all runs with it's stdout and stderr
+# if not defined it will print on os.Stdout
+log_file: output.log
+
+# Ticker duration for how frequently to check for the
+# scheduled task
+ticker_duration: 10s
+
+# jobs are list of jobs to run with provided rate
+jobs:
+  - command: echo
+    args:
+      - "-n"
+      - hello
+      - world
+    rate: 20s
+  - command: ls
+    dir: "/home/"
+    args:
+      - "-1"
+    rate: 30s

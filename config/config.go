@@ -15,7 +15,7 @@ import (
 
 type Config struct {
 	TickerDuration string `json:"ticker_duration" yaml:"ticker_duration"`
-	Jobs           []Job  `json:"jobs" yaml:"jobs"`
+	Jobs           []*Job `json:"jobs" yaml:"jobs"`
 	LogFile        string `json:"log_file" yaml:"log_file"`
 
 	logger *log.Logger
@@ -28,7 +28,7 @@ type Job struct {
 	Args    []string `json:"args" yaml:"args"`
 	Dir     string   `json:"dir" yaml:"dir"`
 
-	runLogs []RunLog
+	runLogs []*RunLog
 }
 
 type RunLog struct {
@@ -119,7 +119,7 @@ func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
-	l := RunLog{
+	l := &RunLog{
 		runOn: time.Now(),
 	}
 
@@ -132,4 +132,6 @@ func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 	}
 	logger.Printf("command: %s, time: %s, stdout: %q\n", j.Command, l.runOn.Format(time.RFC3339), string(stdoutBuf.Bytes()[:]))
 	logger.Printf("command: %s, time: %s, stderr: %q\n", j.Command, l.runOn.Format(time.RFC3339), string(stderrBuf.Bytes()[:]))
+
+	j.runLogs = append(j.runLogs, l)
 }
