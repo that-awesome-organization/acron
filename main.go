@@ -50,14 +50,14 @@ func main() {
 	}
 
 	t := time.NewTicker(tickerDuration)
-
+	tm := time.Now()
 	for {
 		ctx := context.Background()
-		tm := <-t.C
 		if err := cfg.Check(ctx); err != nil {
 			log.Printf("Failed to check on %s, error: %v", tm.Format(time.RFC3339), err)
 			continue
 		}
 		log.Printf("Successful check on %s", tm.Format(time.RFC3339))
+		tm = <-t.C
 	}
 }
