@@ -24,11 +24,14 @@ type Config struct {
 
 type Job struct {
 	// Schedule string `json:"schedule" yaml:"schedule"`
-	Rate    string   `json:"rate" yaml:"rate"`
-	Command string   `json:"command" yaml:"command"`
-	Args    []string `json:"args" yaml:"args"`
-	Dir     string   `json:"dir" yaml:"dir"`
-	EnvFile string   `json:"env_file" yaml:"env_file"`
+	Name     string   `json:"name" yaml:"name"`
+	Rate     string   `json:"rate" yaml:"rate"`
+	Offset   string   `json:"offset" yaml:"offset"`
+	Command  string   `json:"command" yaml:"command"`
+	Args     []string `json:"args" yaml:"args"`
+	Dir      string   `json:"dir" yaml:"dir"`
+	EnvFile  string   `json:"env_file" yaml:"env_file"`
+	Disabled bool     `json:"disabled" yaml:"disabled"`
 
 	runLogs []*RunLog
 }
@@ -91,6 +94,10 @@ func (c *Config) Check(ctx context.Context) error {
 }
 
 func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
+	if j.Disabled {
+		log.Printf("%s job is disabled, skipping", j.Name)
+		return false, nil
+	}
 	var lastRun time.Time
 	if len(j.runLogs) > 0 {
 		lastRun = j.runLogs[len(j.runLogs)-1].runOn
@@ -105,6 +112,14 @@ func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
 		}
 		duration = d
 	}
+	if j.Offset != "" {
+		d, err := time.ParseDuration(j.Offset)
+		if err == nil && lastRun.Unix() < 0 {
+			lastRun = time.Now().Add(d)
+		}
+		log.Println("error parsing offset:", j.Offset, err)
+	}
+
 	if lastRun.Add(duration).Before(time.Now()) {
 		go j.Run(ctx, logger)
 		return true, nil
