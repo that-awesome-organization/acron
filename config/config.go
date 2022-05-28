@@ -21,6 +21,7 @@ var (
 type ctxKey string
 
 type Config struct {
+	Address        string `json:"address" yaml:"address"`
 	TickerDuration string `json:"ticker_duration" yaml:"ticker_duration"`
 	Jobs           []*Job `json:"jobs" yaml:"jobs"`
 	LogFile        string `json:"log_file" yaml:"log_file"`
@@ -44,8 +45,32 @@ type Job struct {
 }
 
 type RunLog struct {
-	runOn  time.Time
-	result *exec.ExitError
+	runOn     time.Time
+	result    *exec.ExitError
+	stdoutLog string
+	stderrLog string
+}
+
+func (j *Job) GetLastRunOn() *time.Time {
+	if len(j.runLogs) > 0 {
+		return &j.runLogs[len(j.runLogs)-1].runOn
+	}
+	return nil
+}
+
+func (j *Job) GetLastRunLog(outputType string) string {
+	var runLog *RunLog
+	if len(j.runLogs) > 0 {
+		runLog = j.runLogs[len(j.runLogs)-1]
+	}
+	switch outputType {
+	case "stdout":
+		return runLog.stdoutLog
+	case "stderr":
+		return runLog.stderrLog
+	default:
+		return "invalid output type"
+	}
 }
 
 func (c *Config) Init() error {
@@ -170,6 +195,9 @@ func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 
 	logger.Printf("command: %s, time: %s, stdout: %q\n", j.Command, j.currentLog.runOn.Format(time.RFC3339), string(stdoutBuf.Bytes()[:]))
 	logger.Printf("command: %s, time: %s, stderr: %q\n", j.Command, j.currentLog.runOn.Format(time.RFC3339), string(stderrBuf.Bytes()[:]))
+
+	j.currentLog.stdoutLog = string(stdoutBuf.Bytes()[:])
+	j.currentLog.stderrLog = string(stderrBuf.Bytes()[:])
 
 	j.runLogs = append(j.runLogs, j.currentLog)
 	j.currentLog = nil

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"development.thatwebsite.xyz/gokrazy/acron/config"
+	"development.thatwebsite.xyz/gokrazy/acron/server"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -41,6 +43,13 @@ func main() {
 	if err := cfg.Init(); err != nil {
 		log.Fatal(err)
 	}
+
+	s := server.New(cfg)
+	s.Routes()
+	if cfg.Address == "" {
+		cfg.Address = ":8020"
+	}
+	go http.ListenAndServe(cfg.Address, s)
 
 	var tickerDuration time.Duration
 

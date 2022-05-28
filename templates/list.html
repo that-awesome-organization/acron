@@ -1,0 +1,18 @@
+{{- define "main"}}
+<table>
+    <thead>
+        <th>Job Name</th>
+        <th>Last Run</th>
+        <th>View</th>
+    </thead>
+    <tbody>
+        {{ range $index, $element :=  .Jobs }}
+        <tr>
+            <td>{{ coalesce $element.Name $element.Command }}</td>
+            <td>{{ getLastRunOn $element }}</td>
+            <td><a href="/logs?idx={{ $index }}">Logs</a></td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+{{ end }}

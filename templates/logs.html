@@ -1,0 +1,20 @@
+{{- define "main"}}
+
+<div><b>Interval:</b> {{ .Rate }}</div>
+
+{{ if .Delay }}
+<div><b>Delay:</b> {{ .Delay }}</div>
+{{ end }}
+
+<div><b>Last Run on:</b> {{ getLastRunOn . }}</div>
+
+<div>
+    <b>Stdout:</b>
+    <pre style="border: 1px solid black; padding: 0.5em; overflow-x: scroll; background-color: #ddd;">{{ getLastLog . "stdout" }}</pre>
+</div>
+
+<div>
+    <b>Stderr:</b>
+    <pre style="border: 1px solid black; padding: 0.5em; overflow-x: scroll; background-color: #ddd;">{{ getLastLog . "stderr" }}</pre>
+</div>
+{{ end }}
