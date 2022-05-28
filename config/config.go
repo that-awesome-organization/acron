@@ -39,7 +39,8 @@ type Job struct {
 	EnvFile  string   `json:"env_file" yaml:"env_file"`
 	Disabled bool     `json:"disabled" yaml:"disabled"`
 
-	runLogs []*RunLog
+	runLogs    []*RunLog
+	currentLog *RunLog
 }
 
 type RunLog struct {
@@ -60,11 +61,6 @@ func (c *Config) Init() error {
 	if output == nil {
 		output = os.Stdout
 	}
-
-	// if c.LogFile != "" {
-	// 	o, err := os.OpenFile(c.LogFile, )
-	// 	if
-	// }
 
 	c.logger = log.New(output, "[acron] ", log.LstdFlags|log.Lshortfile)
 
@@ -131,7 +127,8 @@ func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
 		}
 	}
 
-	if lastRun.Add(duration).Before(time.Now()) {
+	if lastRun.Add(duration).Before(time.Now()) && // check if the command should be run
+		j.currentLog == nil { // checks if the command is not currently running
 		go j.Run(ctx, logger)
 		return true, nil
 	}
@@ -139,6 +136,9 @@ func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
 }
 
 func (j *Job) Run(ctx context.Context, logger *log.Logger) {
+	j.currentLog = &RunLog{
+		runOn: time.Now(),
+	}
 	cmd := exec.CommandContext(ctx, j.Command, j.Args...)
 	cmd.Env = append(cmd.Env, "ACRON_EXEC=1")
 	if j.EnvFile != "" {
@@ -160,19 +160,17 @@ func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
-	l := &RunLog{
-		runOn: time.Now(),
-	}
-
 	err := cmd.Run()
 	if err != nil {
 		log.Println("Command failed with error:", err)
 		if result, ok := err.(*exec.ExitError); ok {
-			l.result = result
+			j.currentLog.result = result
 		}
 	}
-	logger.Printf("command: %s, time: %s, stdout: %q\n", j.Command, l.runOn.Format(time.RFC3339), string(stdoutBuf.Bytes()[:]))
-	logger.Printf("command: %s, time: %s, stderr: %q\n", j.Command, l.runOn.Format(time.RFC3339), string(stderrBuf.Bytes()[:]))
 
-	j.runLogs = append(j.runLogs, l)
+	logger.Printf("command: %s, time: %s, stdout: %q\n", j.Command, j.currentLog.runOn.Format(time.RFC3339), string(stdoutBuf.Bytes()[:]))
+	logger.Printf("command: %s, time: %s, stderr: %q\n", j.Command, j.currentLog.runOn.Format(time.RFC3339), string(stderrBuf.Bytes()[:]))
+
+	j.runLogs = append(j.runLogs, j.currentLog)
+	j.currentLog = nil
 }
