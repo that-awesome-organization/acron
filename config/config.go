@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -27,6 +28,7 @@ type Job struct {
 	Command string   `json:"command" yaml:"command"`
 	Args    []string `json:"args" yaml:"args"`
 	Dir     string   `json:"dir" yaml:"dir"`
+	EnvFile string   `json:"env_file" yaml:"env_file"`
 
 	runLogs []*RunLog
 }
@@ -113,6 +115,19 @@ func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
 func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 	cmd := exec.CommandContext(ctx, j.Command, j.Args...)
 	cmd.Env = append(cmd.Env, "ACRON_EXEC=1")
+	if j.EnvFile != "" {
+		f, err := os.Open(j.EnvFile)
+		if err != nil {
+			log.Println("error reading environment file:", err)
+		}
+		s := bufio.NewScanner(f)
+		for s.Scan() {
+			if s.Err() == io.EOF {
+				break
+			}
+			cmd.Env = append(cmd.Env, s.Text())
+		}
+	}
 	stdoutBuf := bytes.Buffer{}
 	stderrBuf := bytes.Buffer{}
 	cmd.Dir = j.Dir

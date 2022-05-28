@@ -8,12 +8,17 @@ ticker_duration: 10s
 
 # jobs are list of jobs to run with provided rate
 jobs:
-  - command: echo
+  - command: echo # command path
+    # Arguments to be passed for command
     args:
       - "-n"
       - hello
       - world
+    # rate at which this process should be repeated
     rate: 20s
+    # new line separated file with environment variables
+    # like ENV_VAR=value
+    env_file: .env
   - command: ls
     dir: "/home/"
     args:
