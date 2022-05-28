@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"development.thatwebsite.xyz/gokrazy/acron/config"
 	"development.thatwebsite.xyz/gokrazy/acron/templates"
@@ -64,6 +65,9 @@ func newTemplate() *template.Template {
 		},
 		"getLastLog": func(j *config.Job, outputType string) string {
 			return j.GetLastRunLog(outputType)
+		},
+		"getLastTimeTaken": func(j *config.Job) string {
+			return j.GetLastRunDuration().Truncate(time.Second).String()
 		},
 	})
 }

@@ -46,6 +46,7 @@ type Job struct {
 
 type RunLog struct {
 	runOn     time.Time
+	timeTaken time.Duration
 	result    *exec.ExitError
 	stdoutLog string
 	stderrLog string
@@ -71,6 +72,14 @@ func (j *Job) GetLastRunLog(outputType string) string {
 	default:
 		return "invalid output type"
 	}
+}
+
+func (j *Job) GetLastRunDuration() time.Duration {
+	var runLog *RunLog
+	if len(j.runLogs) > 0 {
+		runLog = j.runLogs[len(j.runLogs)-1]
+	}
+	return runLog.timeTaken
 }
 
 func (c *Config) Init() error {
@@ -198,7 +207,7 @@ func (j *Job) Run(ctx context.Context, logger *log.Logger) {
 
 	j.currentLog.stdoutLog = string(stdoutBuf.Bytes()[:])
 	j.currentLog.stderrLog = string(stderrBuf.Bytes()[:])
-
+	j.currentLog.timeTaken = time.Since(j.currentLog.runOn)
 	j.runLogs = append(j.runLogs, j.currentLog)
 	j.currentLog = nil
 }
