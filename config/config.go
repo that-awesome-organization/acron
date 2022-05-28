@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+var (
+	FirstKey = ctxKey("first")
+)
+
+type ctxKey string
+
 type Config struct {
 	TickerDuration string `json:"ticker_duration" yaml:"ticker_duration"`
 	Jobs           []*Job `json:"jobs" yaml:"jobs"`
@@ -26,7 +32,7 @@ type Job struct {
 	// Schedule string `json:"schedule" yaml:"schedule"`
 	Name     string   `json:"name" yaml:"name"`
 	Rate     string   `json:"rate" yaml:"rate"`
-	Offset   string   `json:"offset" yaml:"offset"`
+	Delay    string   `json:"delay" yaml:"delay"`
 	Command  string   `json:"command" yaml:"command"`
 	Args     []string `json:"args" yaml:"args"`
 	Dir      string   `json:"dir" yaml:"dir"`
@@ -112,12 +118,17 @@ func (j *Job) Check(ctx context.Context, logger *log.Logger) (bool, error) {
 		}
 		duration = d
 	}
-	if j.Offset != "" {
-		d, err := time.ParseDuration(j.Offset)
-		if err == nil && lastRun.Unix() < 0 {
-			lastRun = time.Now().Add(d)
+
+	// parse the delay value for the first time to delay the execution
+	if val, ok := ctx.Value(FirstKey).(bool); val && ok {
+		if j.Delay != "" {
+			d, err := time.ParseDuration(j.Delay)
+			if err == nil {
+				lastRun = time.Now().Add(d)
+			} else {
+				log.Println("error parsing delay:", j.Delay, err)
+			}
 		}
-		log.Println("error parsing offset:", j.Offset, err)
 	}
 
 	if lastRun.Add(duration).Before(time.Now()) {
